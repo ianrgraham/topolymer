@@ -3,6 +3,7 @@
 .venv
 .venv/*
 .snakemake
+.vscode
 
 environment_droplet.yml
 
