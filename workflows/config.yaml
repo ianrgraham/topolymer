@@ -1,0 +1,8 @@
+rounds: [5]
+lens: [10, 20, 40]
+fracs: [0.20, 0.30, 0.40, 0.50]
+
+# additional data details
+bins: 20
+dim: 2
+chiN: [10, 50]

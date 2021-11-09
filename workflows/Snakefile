@@ -1,0 +1,38 @@
+configfile: "config.yaml"
+
+envvars:
+    "DATA_DIR"
+
+def dd(post_path):
+    import os
+    return os.environ["DATA_DIR"] + "/topolymer/" + post_path
+
+rule all:
+    input:
+        expand(
+            dd("processed/cubic_phom/r-{round}_l-{len}_frac-{frac:.2f}.npz"),
+            round=config["rounds"],
+            len=config["lens"],
+            frac=config["fracs"]
+        )
+
+rule dump_grid_densities:
+    input:
+        dd("init_2D_sims/round{round}-len-{len}/frac-{frac}/traj.lammpstrj")
+    output:
+        dd("processed/grid_densities/r-{round}_l-{len}_frac-{frac}.npz")
+    params:
+        dim=config["dim"],
+        bins=config["bins"],
+        chiN=config["chiN"]
+    shell:
+        "python ../scripts/mesh_lammps.py {input} {output} "
+        "{params.dim} --bins {params.bins} --lin-var {params.chiN}"
+
+rule compute_cubic_phom:
+    input:
+        dd("processed/grid_densities/r-{round}_l-{len}_frac-{frac}.npz")
+    output:
+        dd("processed/cubic_phom/r-{round}_l-{len}_frac-{frac}.npz")
+    shell:
+        "python ../scripts/cubic_phom.py {input} {output}"
