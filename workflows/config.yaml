@@ -1,8 +1,11 @@
-rounds: [5] # 6, 7]
-lens: [10, 20, 40]
-fracs: [0.20, 0.30, 0.40, 0.50]
+# product of lists iterate the entire dataset
+rounds: [5] #, 6, 7]
+lens: [10] #, 20, 40]
+fracs: [0.20] #, 0.30, 0.40, 0.50]
 
-# additional data details
-bins: 20
+# constant details of all sims
 dim: 2
 chiN: [10, 50]
+
+# arbitrary parameters
+bins: 40

@@ -6,6 +6,7 @@ import argparse
 import pathlib
 import re
 from typing import List, Optional
+import sys
 
 import numpy as np
 
@@ -89,7 +90,8 @@ class MeshFramesGenerator:
                 type = int(data[1])
                 coord = [float(x) for x in data[3:3+self.dim]]
                 coord = self.wrap(coord)
-                idx = [np.digitize(coord[i], self.grid[i]) - 1 for i in range(dim)]
+                idx = tuple([np.digitize(coord[i], self.grid[i]) - 1 for i in range(dim)])
+
                 if type == 1:
                     self.A_count[idx] += 1
                 elif type == 2:

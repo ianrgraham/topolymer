@@ -42,7 +42,6 @@ mesh = data["mesh"]
 out_data = {}
 
 for i in range(0, len(mesh)):
-    print(i)
 
     dimensions = mesh[i].shape
 
