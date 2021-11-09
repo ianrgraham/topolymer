@@ -20,7 +20,7 @@ class MeshFramesGenerator:
         self.var = var
         self.state = None
         self.state_counter = None
-        self.item_regex = re.compile("ITEM: (.*)$")
+        self.item_regex = re.compile("ITEM:(.*)$")
         self.atoms = None
         self.mesh = []
         self.mesh_grid = []
@@ -50,21 +50,21 @@ class MeshFramesGenerator:
         # overly complicated state machine to parse lammpstrj
         if search is not None:
             item = search.group(1)
-            if item == "TIMESTEP":
+            if "TIMESTEP" in item:
                 assert self.state is None
                 self.state = "time"
                 self.state_counter = 1
-            elif item == "NUMBER OF ATOMS":
+            elif "NUMBER OF ATOMS" in item:
                 assert self.state == "time"
                 self.state = "num"
                 self.state_counter = 1
-            elif item == "BOX BOUNDS pp pp pp":
+            elif "BOX" in item:
                 assert self.state == "num"
                 self.state = "box"
                 self.state_counter = 3
                 self.grid = []
                 self.box = []
-            elif item == "ATOMS id type mol x y z":
+            elif "ATOMS" in item:
                 assert self.state == "box"
                 assert len(self.box) == self.dim
                 self.A_count = np.zeros(self.bins)

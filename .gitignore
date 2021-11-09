@@ -5,6 +5,6 @@
 .snakemake
 .vscode
 
-environment_droplet.yml
+# environment_droplet.yml
 
 scripts/utils/dump-grid-densities
