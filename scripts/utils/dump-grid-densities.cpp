@@ -74,7 +74,7 @@ int main( int argc, char** argv ) {
 
 
     if ( nframes >= skip ) {
-      char nm[50];
+      char nm[4096];
       sprintf(nm, "%s%05d.tec", argv[2], nframes);
       otp = fopen(nm, "w");
       if ( otp == NULL ) {

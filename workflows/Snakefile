@@ -3,19 +3,22 @@ configfile: "config.yaml"
 envvars:
     "DATA_DIR"
 
+# prepend topolymer dataset path
 def dd(post_path):
     import os
     return os.environ["DATA_DIR"] + "/topolymer/" + post_path
 
+# generate cubic filtration data
 rule all:
     input:
         expand(
-            dd("processed/cubic_phom/r-{round}_l-{len}_frac-{frac:.2f}.npz"),
+            dd("processed/cubic_phom_rob/r-{round}_l-{len}_frac-{frac:.2f}.npz"),
             round=config["rounds"],
             len=config["lens"],
             frac=config["fracs"]
         )
 
+# generate grid densities from lammps traj files
 rule dump_grid_densities:
     input:
         dd("init_2D_sims/round{round}-len-{len}/frac-{frac}/traj.lammpstrj")
@@ -29,10 +32,29 @@ rule dump_grid_densities:
         "python ../scripts/mesh_lammps.py {input} {output} "
         "{params.dim} --bins {params.bins} --lin-var {params.chiN}"
 
+# extract grid densities using Rob's script
+rule dump_grid_densities_rob:
+    input:
+        dd("init_2D_sims/round{round}-len-{len}/frac-{frac}/grid_densities.bin")
+    output:
+        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.npz")
+    shell:
+        "../scripts/utils/dump-grid-densities {input} {output}"
+
+# compute cubic filtration data for self-made grid densities
 rule compute_cubic_phom:
     input:
         dd("processed/grid_densities/r-{round}_l-{len}_frac-{frac}.npz")
     output:
         dd("processed/cubic_phom/r-{round}_l-{len}_frac-{frac}.npz")
+    shell:
+        "python ../scripts/cubic_phom.py {input} {output}"
+
+# compute cubic filtration data from Rob's grid densities
+rule compute_cubic_phom_rob:
+    input:
+        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.txt")
+    output:
+        dd("processed/cubic_phom_rob/r-{round}_l-{len}_frac-{frac}.npz")
     shell:
         "python ../scripts/cubic_phom.py {input} {output}"
