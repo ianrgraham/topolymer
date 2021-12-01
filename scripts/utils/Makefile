@@ -1,7 +1,8 @@
 
 TARGET = dump-grid-densities
+CC = g++
 
 all: $(TARGET)
 
 $(TARGET): $(TARGET).cpp
-	clang++ -g $(TARGET).cpp -o $(TARGET)
+	$(CC) $(TARGET).cpp -o $(TARGET)

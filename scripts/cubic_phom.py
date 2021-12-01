@@ -11,7 +11,7 @@ import numpy as np
 
 betti = gudhi.representations.vector_methods.BettiCurve(sample_range=[0, 1]).__call__
 
-valid_input_suffixes = [".npz"]
+valid_input_suffixes = [".npz", ".txt"]
 valid_output_suffixes = [".npz"]
 
 # argument parser
