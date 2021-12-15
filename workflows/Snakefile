@@ -37,9 +37,12 @@ rule dump_grid_densities_rob:
     input:
         dd("init_2D_sims/round{round}-len-{len}/frac-{frac}/grid_densities.bin")
     output:
-        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.npz")
+        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.done")
+    params:
+        output_prefix=dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}_frame")
     shell:
-        "../scripts/utils/dump-grid-densities {input} {output}"
+        "../scripts/utils/dump-grid-densities {input} {params.output_prefix}"
+        "touch {output}"
 
 # compute cubic filtration data for self-made grid densities
 rule compute_cubic_phom:
@@ -53,7 +56,7 @@ rule compute_cubic_phom:
 # compute cubic filtration data from Rob's grid densities
 rule compute_cubic_phom_rob:
     input:
-        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.txt")
+        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.done")
     output:
         dd("processed/cubic_phom_rob/r-{round}_l-{len}_frac-{frac}.npz")
     shell:

@@ -124,27 +124,21 @@ class MeshFramesGenerator:
         np.savez(outfile, **out_data)
 
 
-valid_input_suffixes = [".lammpstrj"]
+valid_input_suffixes = [".lammpstrj", ".tec"]
 valid_output_suffixes = [".npz"]
 
 # argument parser
 parser = argparse.ArgumentParser(description="Construct a density mesh from a lammps file.")
-parser.add_argument('ifile', type=str, help=f'Input file (allowed formats: {valid_input_suffixes})')
-parser.add_argument('ofile', type=str, help=f'Output file (allowed formats: {valid_output_suffixes})')
+parser.add_argument('--input', type=str, nargs="+", help=f'Input file(s) (allowed formats: {valid_input_suffixes})')
+parser.add_argument('--output', type=str, help=f'Output file (allowed formats: {valid_output_suffixes})')
 parser.add_argument('dim', type=int, help="Dimensions of the system")
 parser.add_argument('--bins', type=int, nargs='+', help='Bins of the mesh', default=[20])
 parser.add_argument('--lin-var', type=int, nargs=2, help='Quantity to vary linearly that describes the state. '
                     'Specify as pair of starting and stopping values (start, stop).')
 args = parser.parse_args()
 
-ifile = pathlib.Path(args.ifile)
-ofile = pathlib.Path(args.ofile)
-
-if ifile.suffix not in valid_input_suffixes:
-    raise ValueError(
-        f"Input file type '{ifile.suffix}' is not supported\n\
-            Supported input types: {valid_input_suffixes}"
-    )
+ifiles = args.input
+ofile = pathlib.Path(args.output)
 
 if ofile.suffix not in valid_output_suffixes:
     raise ValueError(
@@ -152,26 +146,45 @@ if ofile.suffix not in valid_output_suffixes:
             Supported output types: {valid_output_suffixes}"
     )
 
-bins = args.bins
-dim = args.dim
+if len(ifiles) == 1:  # lammpstrj
 
-var = args.lin_var
+    ifile = pathlib.Path(ifiles[0])
 
-assert dim == 2 or dim == 3, "Improper 'dim' given"
+    if ifile.suffix not in valid_input_suffixes[:1]:
+        raise ValueError(
+            f"Input file type '{ifile.suffix}' is not supported\n\
+                Supported input types: {valid_input_suffixes}"
+        )
 
-assert var is None or len(var) == 2, "Improper arguments given to --lin-var"
+    bins = args.bins
+    dim = args.dim
 
-if len(bins) == 1:
-    bins = bins*dim
+    var = args.lin_var
 
-f = open(ifile,"r")
-lines = f.readlines()
+    assert dim == 2 or dim == 3, "Improper 'dim' given"
 
-meshgen = MeshFramesGenerator(bins, var=var)
+    assert var is None or len(var) == 2, "Improper arguments given to --lin-var"
 
-for line in lines:
-    # print(line)
-    line = line.replace("\n","")
-    meshgen.ingest_line(line)
-    
-meshgen.dump(ofile)
+    if len(bins) == 1:
+        bins = bins*dim
+
+    f = open(ifile,"r")
+    lines = f.readlines()
+
+    meshgen = MeshFramesGenerator(bins, var=var)
+
+    for line in lines:
+        # print(line)
+        line = line.replace("\n","")
+        meshgen.ingest_line(line)
+        
+    meshgen.dump(ofile)
+
+else:  # tec files
+
+    for ifile in ifiles:
+        if ifile.suffix not in valid_input_suffixes[1:]:
+            raise ValueError(
+                f"Input file type '{ifile.suffix}' is not supported\n\
+                    Supported input types: {valid_input_suffixes}"
+            )
