@@ -1,3 +1,7 @@
+"""
+In the workflow we are taking 
+"""
+
 configfile: "config.yaml"
 
 envvars:
@@ -18,6 +22,7 @@ rule all:
             frac=config["fracs"]
         )
 
+# NOT BEING USED ATM
 # generate grid densities from lammps traj files
 rule dump_grid_densities:
     input:
@@ -37,13 +42,18 @@ rule dump_grid_densities_rob:
     input:
         dd("init_2D_sims/round{round}-len-{len}/frac-{frac}/grid_densities.bin")
     output:
+<<<<<<< HEAD
         dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.done")
     params:
         output_prefix=dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}_frame")
+=======
+        dd("processed/grid_densities_rob/r-{round}_l-{len}_frac-{frac}.txt")
+>>>>>>> 922697e2c17e84224c15efce6b75d7651738a139
     shell:
         "../scripts/utils/dump-grid-densities {input} {params.output_prefix}"
         "touch {output}"
 
+# NOT BEING USED ATM
 # compute cubic filtration data for self-made grid densities
 rule compute_cubic_phom:
     input:
