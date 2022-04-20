@@ -1,0 +1,48 @@
+"""
+In the workflow we are taking 
+"""
+
+configfile: "config.yaml"
+
+envvars:
+    "DATA_DIR"
+
+# prepend topolymer dataset path
+def dd(post_path):
+    import os
+    return os.environ["DATA_DIR"] + "/topolymer/" + post_path
+
+# generate cubic filtration data
+rule all:
+    input:
+        expand(
+            dd("scaling-behaviour/binning-{bins}/cubic_phom/r-{round}_l-{len}_frac-{frac:.2f}.npz"),
+            bins=config["bins"],
+            round=config["rounds"],
+            len=config["lens"],
+            frac=config["fracs"]
+        )
+
+# NOT BEING USED ATM
+# generate grid densities from lammps traj files
+rule dump_grid_densities:
+    input:
+        dd("init_2D_sims/round{round}-len-{len}/frac-{frac}/traj.lammpstrj")
+    output:
+        dd("scaling-behaviour/binning-{bins}/grid_densities/r-{round}_l-{len}_frac-{frac}.npz")
+    params:
+        dim=config["dim"],
+        chiN=config["chiN"]
+    shell:
+        "python ../scripts/mesh_lammps.py {input} {output} "
+        "{params.dim} --bins {wildcards.bins} --lin-var {params.chiN}"
+
+# NOT BEING USED ATM
+# compute cubic filtration data for self-made grid densities
+rule compute_cubic_phom:
+    input:
+        dd("scaling-behaviour/binning-{bins}/grid_densities/r-{round}_l-{len}_frac-{frac}.npz")
+    output:
+        dd("scaling-behaviour/binning-{bins}/cubic_phom/r-{round}_l-{len}_frac-{frac}.npz")
+    shell:
+        "python ../scripts/cubic_phom.py {input} {output}"

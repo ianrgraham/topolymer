@@ -1,0 +1,12 @@
+# product of lists iterate the entire dataset
+rounds: [5, 6, 7]
+lens: [10, 20, 40]
+fracs: [0.20, 0.30, 0.40, 0.50]
+
+# post-processing parameters
+bins: [20, 30, 40, 50, 60, 70, 80]
+chop: [1.0, 0.9, 0.8, 0.]
+
+# constant details of all sims
+dim: 2
+chiN: [10, 50]
