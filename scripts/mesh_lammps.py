@@ -10,15 +10,45 @@ from typing import List, Optional, Tuple
 import sys
 
 import numpy as np
+from numba import njit
 
-def gaus_smear(v1, v2, sigma):
-    r = np.linalg.norm(np.array(v2)-np.array(v1))
+@njit(fastmath=True)
+def _gaus_smear(v1, v2, sigma):
+    r = np.linalg.norm(v2-v1)
     return np.exp(-(r/sigma)**2)
+
+@njit
+def _wrap(vector, box, dim):
+    out = np.zeros(dim)
+    for i in range(dim):
+        l2 = (box[i][1] - box[i][0])/2
+        if vector[i] >= box[i][1]:
+            out[i] = vector[i] - l2
+        elif vector[i] < box[i][0]:
+            out[i] = vector[i] + l2
+        else:
+            out[i] = vector[i]
+    return out
+
+@njit
+def _add_smeared_gauss_to_grid(array_ref, idx_ref, disp, disp_x, A_count, B_count, smear_sigma, dim, box, bins, type):
+    new_idx = np.zeros(dim, dtype=np.int64)
+    for i in range(len(disp)):
+        d = disp[i]
+        dx = disp_x[i]
+        coord = _wrap(array_ref + dx, box, dim)
+        for i in range(dim):
+            new_idx[i] = (idx_ref[i] + d[i])%bins[i]
+        if type == 1:
+            A_count[new_idx[0], new_idx[1]] += _gaus_smear(array_ref, coord, smear_sigma)
+        elif type == 2:
+            B_count[new_idx[0], new_idx[1]] += _gaus_smear(array_ref, coord, smear_sigma)
+    
 
 class MeshFramesGenerator:
 
     def __init__(self, bins: List[int], var: Optional[List] = None, smear: Optional[Tuple[int, float]] = None):
-        self.bins = bins
+        self.bins = np.array(bins)
         self.dim = len(bins)
         if var is not None:
             assert len(var) == 2
@@ -44,16 +74,9 @@ class MeshFramesGenerator:
     def wrap(self, vector):
 
         assert len(vector) == self.dim
-        out = []
-        for i in range(self.dim):
-            l2 = (self.box[i][1] - self.box[i][0])/2
-            if vector[i] >= self.box[i][1]:
-                out.append(vector[i] - l2)
-            elif vector[i] < self.box[i][0]:
-                out.append(vector[i] + l2)
-            else:
-                out.append(vector[i])
+        out = _wrap(np.array(vector), self.box, self.dim)
         return out
+        
 
     def ingest_line(self, line: str):
         search = self.item_regex.search(line)
@@ -79,14 +102,27 @@ class MeshFramesGenerator:
             elif "ATOMS" in item:
                 assert self.state == "box"
                 assert len(self.box) == self.dim
+                self.box = np.array(self.box)
+                self.dx = np.array(self.dx)
+                self.grid = np.array(self.grid)
                 self.A_count = np.zeros(self.bins)
                 self.B_count = np.zeros(self.bins)
                 self.state = "atoms"
                 self.state_counter = self.atoms - 1
+                if self.smear is not None:
+                    bins, _ = self.smear
+                    disp = list(itertools.product(range(-bins, bins + 1), repeat=self.dim))
+                    disp_x = []
+                    for d in disp:
+                        disp_x.append(d*self.dx)
+                    self.disp = np.array(disp)
+                    self.disp_x = np.array(disp_x)
+
             else:
                 raise ValueError(f"Unknown item tag ({item}) found")
         else:
             if self.state == "time":
+                print(int(line))
                 self.time.append(int(line))
             elif self.state == "num":
                 self.atoms = int(line)
@@ -99,32 +135,26 @@ class MeshFramesGenerator:
                         bin_edges
                     )
                     self.dx.append(bin_edges[1] - bin_edges[0])
+                
             elif self.state == "atoms":
                 data = line.split()
                 type = int(data[1])
 
-                ref_coord = [float(x) for x in data[3:3+self.dim]]
-                array_ref = np.array(ref_coord)
+                ref_coord = np.array([float(x) for x in data[3:3+self.dim]])
+                coord = self.wrap(ref_coord)
+
+                idx = np.array([np.digitize(coord[i], self.grid[i]) - 1 for i in range(self.dim)])
 
                 if self.smear is None:
-                    coord = self.wrap(ref_coord)
-                    idx = tuple([np.digitize(coord[i], self.grid[i]) - 1 for i in range(self.dim)])
+                    
                     if type == 1:
-                        self.A_count[idx] += 1
+                        self.A_count[idx[0], idx[1]] += 1
                     elif type == 2:
-                        self.B_count[idx] += 1
+                        self.B_count[idx[0], idx[1]] += 1
                     else:
                         raise ValueError(f"Found particle type other than 0 and 1: {type}")
                 else:
-                    bins, sigma = self.smear
-                    disp = list(itertools.product(range(-bins, bins + 1), self.dim))
-                    for d in disp:
-                        coord = np.array(self.wrap(array_ref + np.array(d)*np.array(self.dx)))
-                        idx = tuple([np.digitize(coord[i], self.grid[i]) - 1 for i in range(self.dim)])
-                        if type == 1:
-                            self.A_count[idx] += gaus_smear(array_ref, coord, sigma)
-                        elif type == 2:
-                            self.B_count[idx] += gaus_smear(array_ref, coord, sigma)
+                    _add_smeared_gauss_to_grid(coord, idx, self.disp, self.disp_x, self.A_count, self.B_count, self.smear[1], self.dim, self.box, self.bins, type)
 
                 
             elif self.state is None:
@@ -160,7 +190,7 @@ valid_output_suffixes = [".npz"]
 parser = argparse.ArgumentParser(description="Construct a density mesh from a lammps file.")
 parser.add_argument('--input', type=str, nargs="+", help=f'Input file(s) (allowed formats: {valid_input_suffixes})')
 parser.add_argument('--output', type=str, help=f'Output file (allowed formats: {valid_output_suffixes})')
-parser.add_argument('dim', type=int, help="Dimensions of the system")
+parser.add_argument('--dim', type=int, help="Dimensions of the system", default=2)
 parser.add_argument('--bins', type=int, nargs='+', help='Bins of the mesh', default=[20])
 parser.add_argument('--lin-var', type=int, nargs=2, help='Quantity to vary linearly that describes the state. '
                     'Specify as pair of starting and stopping values (start, stop).')
@@ -192,7 +222,7 @@ if len(ifiles) == 1:  # lammpstrj
     var = args.lin_var
     smear = args.smear
     if smear is not None:
-        smear = tuple(int(smear[0]), float(smear[1]))
+        smear = (int(smear[0]), float(smear[1]))
 
     assert dim == 2 or dim == 3, "Improper 'dim' given"
 

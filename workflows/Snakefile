@@ -16,7 +16,7 @@ def dd(post_path):
 rule all:
     input:
         expand(
-            dd("processed/cubic_phom_rob/r-{round}_l-{len}_frac-{frac:.2f}.npz"),
+            dd("processed/cubic_phom/r-{round}_l-{len}_frac-{frac:.2f}.npz"),
             round=config["rounds"],
             len=config["lens"],
             frac=config["fracs"]
@@ -32,10 +32,12 @@ rule dump_grid_densities:
     params:
         dim=config["dim"],
         bins=config["bins"],
-        chiN=config["chiN"]
+        chiN=config["chiN"],
+        smear=config["smear"]
     shell:
-        "python ../scripts/mesh_lammps.py {input} {output} "
-        "{params.dim} --bins {params.bins} --lin-var {params.chiN}"
+        "python ../scripts/mesh_lammps.py --input {input} --output {output} "
+        "--dim {params.dim} --bins {params.bins} --lin-var {params.chiN} "
+        "--smear {params.smear}"
 
 # extract grid densities using Rob's script
 rule dump_grid_densities_rob:

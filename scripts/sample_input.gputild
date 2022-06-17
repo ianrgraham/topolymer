@@ -1,0 +1,29 @@
+Dim 3
+
+max_steps 800000
+log_freq 1000
+traj_freq 100000
+binary_freq 1000000
+
+
+pmeorder 1
+
+delt 0.005
+
+read_data {CONF_DIR}/{INPUT_FILE}.data
+
+Nx {NX}
+Ny {NY} 
+Nz {NZ}
+
+# read_resume {READ_RESUME}
+
+integrator all GJF 
+
+bond 1 harmonic 1.5 0.0 
+
+# ITYPE JTYPE PREFACTOR SMEARING_LENGTH
+n_gaussians 3
+gaussian 1 1 {POLY_SELF_AMP} 1
+gaussian 1 2 {POLY_CROSS_AMP} 1
+gaussian 2 2 {POLY_SELF_AMP} 1

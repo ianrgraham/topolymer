@@ -8,4 +8,5 @@ dim: 2
 chiN: [10, 50]
 
 # arbitrary parameters
-bins: 40
+bins: 80
+smear: [3, 1.0]
