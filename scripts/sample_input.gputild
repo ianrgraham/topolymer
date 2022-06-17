@@ -10,7 +10,7 @@ pmeorder 1
 
 delt 0.005
 
-read_data {CONF_DIR}/{INPUT_FILE}.data
+read_data {CONF_DIR}/{INPUT_FILE}
 
 Nx {NX}
 Ny {NY} 
