@@ -1,0 +1,27 @@
+Dim 3
+Nx 63
+Ny 63
+Nz 63
+delt 0.005
+integrator all GJF
+rand_seed 1655683141
+max_steps 100000
+MAX_BONDS 3
+MAX_ANGLES 3
+log_freq 1000
+threads 512
+grid_freq 0
+traj_freq 10000
+binary_freq 100000
+struc_freq 0
+skip_steps 20000
+pmeorder 1
+diffusivity 1 1
+diffusivity 2 1
+n_gaussians 3
+gaussian1 1 5 1
+gaussian1 2 10 1
+gaussian2 2 5 1
+n_fieldphases 1
+fieldphase 1 2 0.5 0 2 3
+bond 1 harmonic 1.5 0

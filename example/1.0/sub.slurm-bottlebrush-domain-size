@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH -J domain_size # job name
+#SBATCH -o domain_size.%j   # output and error file name (%j expands to jobID)
+#SBATCH -N 1              # total number of mpi tasks requested
+#SBATCH -n 1             # total number of mpi tasks requested
+#SBATCH --gres=gpu:1
+#SBATCH -p g_rrig
+#SBATCH -t 99:00:00        # run time (hh:mm:ss)
+#SBATCH --begin=now
+#SBATCH --mail-user=tabedzki@seas.upenn.edu
+#SBATCH --mail-type=end,fail    # email me when the job finishes
+
+### Function Definitions
+module () {
+        eval `/usr/bin/modulecmd zsh $*`
+}
+
+
+module load  gcc/openmpi/default
+module load  gpu/cuda/10.2
+
+exe=$HOME/code/cuda-bd-2021/gpu-tild
+
+time $exe -in ./input* > LOG-std
+
