@@ -10,6 +10,22 @@ import shutil
 import subprocess
 import math
 
+command = """
+function last_frame {
+        if [ ! -z "$2" ] ; then
+                input="$1"
+                output="$2"
+                sed -n '/^ITEM: TIMESTEP$/{h;b};H;${x;p}' $input > $output
+                return 2
+        else
+                echo "Usage: last_frame [input] [output]"
+                return 1
+        fi
+}
+"""
+
+subprocess.call(command.split())
+
 def myround(x, prec=2, base=.05):
   return round(base * round(float(x)/base),prec)
 
@@ -36,7 +52,7 @@ def topology_loss(lammpstraj_snapshot):
 
     phom_output = "phom.npz"
 
-    command = "python ../scripts/cubic_phom.py {input} {output}"
+    command = f"python ../scripts/cubic_phom.py {mesh_output} {phom_output}"
 
     
 
