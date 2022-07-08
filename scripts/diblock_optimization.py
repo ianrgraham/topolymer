@@ -12,19 +12,19 @@ import math
 
 command = """
 function last_frame {
-        if [ ! -z "$2" ] ; then
-                input="$1"
-                output="$2"
-                sed -n '/^ITEM: TIMESTEP$/{h;b};H;${x;p}' $input > $output
-                return 2
-        else
-                echo "Usage: last_frame [input] [output]"
-                return 1
-        fi
+    if [ ! -z "$2" ] ; then
+        input="$1"
+        output="$2"
+        sed -n '/^ITEM: TIMESTEP$/{h;b};H;${x;p}' $input > $output
+        return 2
+    else
+        echo "Usage: last_frame [input] [output]"
+        return 1
+    fi
 }
 """
 
-subprocess.call(command.split())
+subprocess.call([command], shell=True)
 
 def myround(x, prec=2, base=.05):
   return round(base * round(float(x)/base),prec)
@@ -53,6 +53,24 @@ def topology_loss(lammpstraj_snapshot):
     phom_output = "phom.npz"
 
     command = f"python ../scripts/cubic_phom.py {mesh_output} {phom_output}"
+
+    data = np.load(phom_output, allow_pickle=True) # phom data for this snapshot
+
+    # betti_a_0
+    # betti_b_0
+    # betti_a_1
+    # betti_b_1
+    # betti_a_2
+    # betti_b_2
+
+    key = "betti_a_2"
+    betti_a_2 = data[key]
+
+    # still need to compare to some reference
+    ref = None
+
+    return np.sum(np.square(betti_a_2 - ref))
+
 
     
 
