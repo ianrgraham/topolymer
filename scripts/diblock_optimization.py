@@ -21,11 +21,24 @@ boxes = [ np.array([16.00, 16.00, 16.00])  ]
 desired_rho0 = 5
 N = np.array([20]) # Total chain length; N_a = f_a * N
 
+smear = [3, 1.0]
+
 optimization_generations = 50
 
 # TODO function to compute loss from topology
-def topology_loss(frac, chiN):
-    return (frac - 0.5) ** 2 + (chiN - 20) ** 2
+def topology_loss(lammpstraj_snapshot):
+    mesh_output = "mesh.npz"
+    command = f"python ../scripts/mesh_lammps.py --input {lammpstraj_snapshot} --output {mesh_output} " \
+        f"--dim {Dim} --bins {16} " \
+        f"--smear {smear}"
+
+    subprocess.run(command.split())
+
+    phom_output = "phom.npz"
+
+    command = "python ../scripts/cubic_phom.py {input} {output}"
+
+    
 
 # TODO function to 
 
@@ -83,8 +96,6 @@ for n, box_dim in zip(N, boxes):
             input_file = "sample_input.gputild"
             shutil.copy2(input_file, epoch_folder)
 
-            loss = topology_loss(frac, chiN)  # TODO compute some loss based on topology
-
             input_path = os.path.join(dir_path,epoch_folder,input_file)
 
             kappa = 5
@@ -106,9 +117,15 @@ for n, box_dim in zip(N, boxes):
             subprocess.call([command], shell=True)
             os.chdir(epoch_folder)
             command = f"echo 'gpu-tild -in {input_file}'"
-            subprocess.call([command], shell=True)
+            subprocess.call(command.split())
 
-            loss = topology_loss(frac,chiN)  # TODO compute some loss based on topology
+            lammpstraj_file = "traj.lammpstraj"
+            output_lammpstraj_snapshot = "snapshot.lammpstraj"
+
+            command = f"last_frame {lammpstraj_file} {output_lammpstraj_snapshot}"
+            subprocess.call(command.split())
+
+            loss = topology_loss(output_lammpstraj_snapshot)  # TODO compute some loss based on topology
             count = count+1
             solutions.append((x, loss))  # append params & loss to solution list
             # print(solutions)
