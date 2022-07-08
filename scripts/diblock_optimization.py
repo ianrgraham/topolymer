@@ -10,43 +10,34 @@ import shutil
 import subprocess
 import math
 
-command = """
-function last_frame {
-    if [ ! -z "$2" ] ; then
-        input="$1"
-        output="$2"
-        sed -n '/^ITEM: TIMESTEP$/{h;b};H;${x;p}' $input > $output
-        return 2
-    else
-        echo "Usage: last_frame [input] [output]"
-        return 1
-    fi
-}
-"""
+def last_frame(input, output):
+    command = "sed -n '/^ITEM: TIMESTEP$/{h;b};H;${x;p}'" + f" {input} > {output}"
+    os.system(command)
 
-subprocess.call([command], shell=True)
 
 def myround(x, prec=2, base=.05):
   return round(base * round(float(x)/base),prec)
 
-Dim = 3
+DIM = 3
+L = 16.0
+
+REF_SNAPSHOT = "asjdflasjlfjasdf"
 
 resolution = 1
-boxes = [ np.array([16.00, 16.00, 16.00])  ]
+boxes = [ np.array([L, L, L])  ]
 
 desired_rho0 = 5
 N = np.array([20]) # Total chain length; N_a = f_a * N
 
-smear = [3, 1.0]
+SMEAR = [3, 1.0]
 
 optimization_generations = 50
 
-# TODO function to compute loss from topology
-def topology_loss(lammpstraj_snapshot):
+def compute_cubic_phom(lammpstrj_snapshot):
     mesh_output = "mesh.npz"
-    command = f"python ../scripts/mesh_lammps.py --input {lammpstraj_snapshot} --output {mesh_output} " \
-        f"--dim {Dim} --bins {16} " \
-        f"--smear {smear}"
+    command = f"python ../scripts/mesh_lammps.py --input {lammpstrj_snapshot} --output {mesh_output} " \
+        f"--dim {DIM} --bins {int(L)} " \
+        f"--smear {SMEAR}"
 
     subprocess.run(command.split())
 
@@ -55,6 +46,14 @@ def topology_loss(lammpstraj_snapshot):
     command = f"python ../scripts/cubic_phom.py {mesh_output} {phom_output}"
 
     data = np.load(phom_output, allow_pickle=True) # phom data for this snapshot
+    return data
+
+ref_phom = compute_cubic_phom(REF_SNAPSHOT)
+
+# TODO function to compute loss from topology
+def topology_loss(lammpstrj_snapshot, ref):
+
+    data = compute_cubic_phom(lammpstrj_snapshot)
 
     # betti_a_0
     # betti_b_0
@@ -63,18 +62,15 @@ def topology_loss(lammpstraj_snapshot):
     # betti_a_2
     # betti_b_2
 
-    key = "betti_a_2"
-    betti_a_2 = data[key]
+    loss = 0.0
 
-    # still need to compare to some reference
-    ref = None
+    for key in data:
+        ref_betti = ref[key]
+        data_betti = data[key]
+        loss += np.sum(np.square(data_betti - ref_betti))
 
-    return np.sum(np.square(betti_a_2 - ref))
 
-
-    
-
-# TODO function to 
+    return loss
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 count = 0
@@ -151,15 +147,15 @@ for n, box_dim in zip(N, boxes):
             subprocess.call([command], shell=True)
             os.chdir(epoch_folder)
             command = f"echo 'gpu-tild -in {input_file}'"
-            subprocess.call(command.split())
+            return_val = subprocess.call(command.split())
+            print(return_val)
 
-            lammpstraj_file = "traj.lammpstraj"
-            output_lammpstraj_snapshot = "snapshot.lammpstraj"
+            lammpstrj_file = "traj.lammpstrj"
+            output_lammpstrj_snapshot = "snapshot.lammpstrj"
 
-            command = f"last_frame {lammpstraj_file} {output_lammpstraj_snapshot}"
-            subprocess.call(command.split())
+            last_frame(lammpstrj_file, output_lammpstrj_snapshot)
 
-            loss = topology_loss(output_lammpstraj_snapshot)  # TODO compute some loss based on topology
+            loss = topology_loss(output_lammpstrj_snapshot, ref_phom)  # TODO compute some loss based on topology
             count = count+1
             solutions.append((x, loss))  # append params & loss to solution list
             # print(solutions)
